@@ -1,6 +1,7 @@
 
 sigmoid  = function(z) 1 / (1 + exp(-z))
 
+
 sim_data = function(sample_size) {
   
   agemean= 30
