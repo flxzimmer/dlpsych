@@ -1,0 +1,16 @@
+# Ignore everything
+*
+
+# But not these files...
+!.gitignore
+!.Rbuildignore
+!DESCRIPTION
+!NAMESPACE
+!man
+!.git
+!functions.R
+# etc...
+
+# ...even if they are in subdirectories
+!*/
+
