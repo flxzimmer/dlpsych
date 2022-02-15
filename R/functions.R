@@ -1,6 +1,7 @@
 
 sigmoid  = function(z) 1 / (1 + exp(-z))
 
+mse = function(x,y) mean((x-y)^2)
 
 sim_data = function(sample_size) {
   
