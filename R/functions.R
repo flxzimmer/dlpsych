@@ -1,7 +1,7 @@
 
 sigmoid  = function(z) 1 / (1 + exp(-z))
 
-mse = function(x,y) mean((x-y)^2)
+MSE = function(x,y) mean((x-y)^2)
 
 sim_data = function(sample_size) {
   
@@ -25,24 +25,24 @@ train_nn = function(mod,x,y,loss='mse',epochs = 20,learning_rate=.001,batch_size
   
   
   if(is.data.frame(x)) x = as.matrix(x)
-  if(is.data.frame(y)) x = as.matrix(y)
+  if(is.data.frame(y)) y = as.matrix(y)
   
   
-  mod_nn %>% compile(
+  mod %>% compile(
     loss = loss,
     optimizer = optimizer_adam(learning_rate = learning_rate),
     metrics = metrics
   )
   
   
-  history = mod_nn %>% fit(
+  history = mod %>% fit(
     x,
     y,
     epochs = epochs,
     batch_size = batch_size,
     verbose=1
   )
-  return(mod_nn)
+  return(mod)
 }
 
 
