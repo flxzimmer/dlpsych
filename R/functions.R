@@ -25,6 +25,21 @@ testfun = function(n=2) {
 }
 
 
+#' Title
+#'
+#' @param mod Keras Model, z.B. erstellt mit keras_model_sequential() 
+#' @param x Prädiktoren
+#' @param y Kriterium 
+#' @param loss Loss Function, Angabe als character, z.B. "mse" 
+#' @param epochs Anzahl der Schritte im Gradient Descent. Default ist 20.
+#' @param learning_rate Schrittweite im Gradient Descent. Default ist .001.
+#' @param batch_size Für Stochastic Gradient Descent: Anzahl der Samples in einem Batch 
+#' @param metrics (Optional) Weitere Metriken die neben der Loss beim Training angezeigt werden sollen. Diese werden beim Training nicht berücksichtigt. 
+#'
+#' @return
+#' @export
+#'
+#' @examples
 train_nn = function(mod,x,y,loss,epochs = 20,learning_rate=.001,batch_size=nrow(x),metrics=NULL) {
   
   #batch_size = 32 test
