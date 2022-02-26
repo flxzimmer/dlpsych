@@ -21,7 +21,9 @@ sim_data = function(sample_size) {
 }
 
 
-train_nn = function(mod,x,y,loss='mse',epochs = 20,learning_rate=.001,batch_size=nrow(x),metrics=NULL) {
+train_nn = function(mod,x,y,loss,epochs = 20,learning_rate=.001,batch_size=nrow(x),metrics=NULL) {
+  
+  #batch_size = 32 
   
   
   if(is.data.frame(x)) x = as.matrix(x)
@@ -30,7 +32,7 @@ train_nn = function(mod,x,y,loss='mse',epochs = 20,learning_rate=.001,batch_size
   
   mod %>% compile(
     loss = loss,
-    optimizer = optimizer_adam(learning_rate = learning_rate),
+    optimizer = optimizer_adam(learning_rate),
     metrics = metrics
   )
   
@@ -63,9 +65,7 @@ plot_img = function(img1) {
 }
 
 
-data_income = function(n) {
-  
-  # income = rnorm(n,mean=6.500,sd=1.300)
+data_income = function(n,binary=FALSE) {
   
   education = rnorm(n)
   
@@ -84,13 +84,72 @@ data_income = function(n) {
 # sd(income)
 # cor(education,income)
 
-  
-  
   dat = data.frame(income=income,education=education)
   dat = cbind(dat,unrelated)
+  
+  if (binary) {
+    dat$income = as.numeric(dat$income>median(dat$income))
+    # dat$income = ifelse((dat$income>median(dat$income)),"high","low")
+    # dat$income = factor(dat$income,levels = c("low","high"))
+  }
+    
   return(dat)
+}
+
+
+weights_nn = function(mod_nn) {
+  
+  a = get_weights(mod_nn)
+  
+  len = length(a)
+  
+  ind_weights = seq(1,len,by=2)  
+  ind_bias = seq(2,len,by=2)  
+  
+  names(a) = seq(1,len)
+  names(a)[ind_weights] = paste0("Weights_Layer_",1:(len/2))
+  names(a)[ind_bias] = paste0("Bias_Layer_",1:(len/2))
+  
+  for (i in ind_weights) {
+    temp = a[[i]]
+    rownames(temp) = paste0("pred",1:nrow(temp))
+    colnames(temp) = paste0("neuron",1:ncol(temp))
+    a[[i]] = temp
+  }
+  
+  return(a)
   
 }
+
+
+
+
+#' #' Title
+#' #'
+#' #' @param object 
+#' #' @param newdata 
+#' #' @param type 
+#' #' @param se.fit 
+#' #' @param dispersion 
+#' #' @param terms 
+#' #' @param na.action 
+#' #' @param ... 
+#' #'
+#' #' @return
+#' #' @export
+#' #'
+#' #' @examples
+#' predict.glm = function(object, newdata = NULL,
+#'                        type = c("response"),
+#'                        se.fit = FALSE, dispersion = NULL, terms = NULL,
+#'                        na.action = na.pass, ...) {
+#'   
+#'   stats::predict.glm(object=object, newdata = newdata,
+#'                      type = type,
+#'                      se.fit = se.fit, dispersion = dispersion, terms = terms,
+#'                      na.action = na.action, ...)
+#' }
+  
 
 
 
