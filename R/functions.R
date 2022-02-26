@@ -21,7 +21,7 @@ sim_data = function(sample_size) {
 }
 
 testfun = function(n=2) {
-  print(n)
+  print(n*2)
 }
 
 
