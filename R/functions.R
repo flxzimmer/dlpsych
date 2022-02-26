@@ -20,12 +20,15 @@ sim_data = function(sample_size) {
   return(df)
 }
 
+testfun = function(n=2) {
+  print(n)
+}
+
 
 train_nn = function(mod,x,y,loss,epochs = 20,learning_rate=.001,batch_size=nrow(x),metrics=NULL) {
   
   #batch_size = 32 test
-  1+1
-  
+
   if(is.data.frame(x)) x = as.matrix(x)
   if(is.data.frame(y)) y = as.matrix(y)
   
