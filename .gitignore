@@ -9,7 +9,7 @@
 !man
 !.git
 !functions.R
-!*.Rd
+#!*.Rd
 # etc...
 
 # ...even if they are in subdirectories
