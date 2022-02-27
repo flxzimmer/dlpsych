@@ -10,7 +10,6 @@
 !.git
 !functions.R
 !*.Rd
-!MSE_3D.html
 # etc...
 
 # ...even if they are in subdirectories
