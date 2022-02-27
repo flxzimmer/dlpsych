@@ -1,8 +1,39 @@
 
-sigmoid  = function(z) 1 / (1 + exp(-z))
 
-MSE = function(x,y) mean((x-y)^2)
 
+#' Title
+#'
+#' @param z 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+sigmoid  = function(z) {1 / (1 + exp(-z))}
+
+
+
+#' Title
+#'
+#' @param x 
+#' @param y 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+MSE = function(x,y) {mean((x-y)^2)}
+
+
+
+#' Title
+#'
+#' @param sample_size 
+#'
+#' @return
+#' @export
+#'
+#' @examples
 sim_data = function(sample_size) {
   
   agemean= 30
@@ -20,9 +51,7 @@ sim_data = function(sample_size) {
   return(df)
 }
 
-testfun = function(n=2) {
-  print(n*2)
-}
+
 
 
 #' Title
@@ -68,6 +97,7 @@ train_nn = function(mod,x,y,loss,epochs = 20,learning_rate=.001,batch_size=nrow(
 
 
 
+
 plot_img = function(img1) {
   
   dat = c()
@@ -84,6 +114,15 @@ plot_img = function(img1) {
 }
 
 
+#' Title
+#'
+#' @param n 
+#' @param binary 
+#'
+#' @return
+#' @export
+#'
+#' @examples
 data_income = function(n,binary=FALSE) {
   
   education = rnorm(n)
@@ -116,6 +155,14 @@ data_income = function(n,binary=FALSE) {
 }
 
 
+#' Title
+#'
+#' @param mod_nn 
+#'
+#' @return
+#' @export
+#'
+#' @examples
 weights_nn = function(mod_nn) {
   
   a = get_weights(mod_nn)
@@ -143,32 +190,7 @@ weights_nn = function(mod_nn) {
 
 
 
-#' #' Title
-#' #'
-#' #' @param object 
-#' #' @param newdata 
-#' #' @param type 
-#' #' @param se.fit 
-#' #' @param dispersion 
-#' #' @param terms 
-#' #' @param na.action 
-#' #' @param ... 
-#' #'
-#' #' @return
-#' #' @export
-#' #'
-#' #' @examples
-#' predict.glm = function(object, newdata = NULL,
-#'                        type = c("response"),
-#'                        se.fit = FALSE, dispersion = NULL, terms = NULL,
-#'                        na.action = na.pass, ...) {
-#'   
-#'   stats::predict.glm(object=object, newdata = newdata,
-#'                      type = type,
-#'                      se.fit = se.fit, dispersion = dispersion, terms = terms,
-#'                      na.action = na.action, ...)
-#' }
-  
+
 
 
 
