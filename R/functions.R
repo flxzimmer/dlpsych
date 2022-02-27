@@ -28,6 +28,21 @@ MSE = function(x,y) {mean((x-y)^2)}
 
 #' Title
 #'
+#' @param x 
+#' @param y 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+CE = function(x,y) {
+  -mean(x *log(y) + (1-x) *log(1- y))
+  }
+
+
+
+#' Title
+#'
 #' @param sample_size 
 #'
 #' @return
@@ -53,45 +68,58 @@ sim_data = function(sample_size) {
 
 
 
-
-#' Title
+#' Keras Modelle trainieren
+#' 
+#' One-Line Interface to keras
 #'
 #' @param mod Keras Model, z.B. erstellt mit keras_model_sequential() 
 #' @param x Prädiktoren
 #' @param y Kriterium 
-#' @param loss Loss Function, Angabe als character, z.B. "mse" 
+#' @param loss Loss Function, z.B. "mse" (Mean-Squared-Error) oder "ce" (cross-entropy) 
 #' @param epochs Anzahl der Schritte im Gradient Descent. Default ist 20.
 #' @param learning_rate Schrittweite im Gradient Descent. Default ist .001.
 #' @param batch_size Für Stochastic Gradient Descent: Anzahl der Samples in einem Batch 
 #' @param metrics (Optional) Weitere Metriken die neben der Loss beim Training angezeigt werden sollen. Diese werden beim Training nicht berücksichtigt. 
+#' @param optimizer Verwendeter Optimizer, Default ist "adam". Alternativ: "rmsprop"
+#' @param silent Wenn TRUE nur finalen Loss in der Console. Default ist FALSE
 #'
 #' @return
 #' @export
 #'
 #' @examples
-train_nn = function(mod,x,y,loss,epochs = 20,learning_rate=.001,batch_size=nrow(x),metrics=NULL) {
+train_nn = function(mod,x,y,loss,epochs = 20,learning_rate=.001,optimizer="adam",batch_size=nrow(x),metrics=NULL,silent=FALSE) {
   
-  #batch_size = 32 test
-
-
   if(is.data.frame(x)) x = as.matrix(x)
   if(is.data.frame(y)) y = as.matrix(y)
   
+  if(tolower(optimizer)=="adam") optim = optimizer_adam(learning_rate)
+  if(tolower(optimizer)=="rmsprop") optim = optimizer_rmsprop(learning_rate)
+  
+  if (tolower(loss)=="ce") loss = "binary_crossentropy"
   
   mod %>% compile(
     loss = loss,
-    optimizer = optimizer_adam(learning_rate),
+    optimizer = optim,
     metrics = metrics
   )
   
+  verbosity =  ifelse(silent, 0, 1) 
   
   history = mod %>% fit(
     x,
     y,
     epochs = epochs,
     batch_size = batch_size,
-    verbose=1
+    verbose=verbosity
   )
+  
+  if(verbosity==0)   {
+    
+    final_loss = history$metrics$loss[length(history$metrics$loss)]
+  print(paste0("Final Loss (",loss,"): ",final_loss))
+  
+  }
+  
   return(mod)
 }
 
@@ -157,6 +185,41 @@ data_income = function(n,binary=FALSE) {
 
 #' Title
 #'
+#' @param n 
+#' @param binary 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+data_income_challenge = function(type,binary=FALSE) {
+
+  # train data 
+  n=200
+  
+  dat = data_income(n=n,binary=binary)
+  
+  dat$income= dat$income *3
+  
+  dat$unrelated1 = dat$unrelated1 *10
+  
+  if(type=="train") return(dat)
+  
+  # test data 
+  n=50
+  
+  dat = data_income(n=n,binary=binary)
+  
+  dat$income= dat$income *3
+  
+  dat$unrelated1 = dat$unrelated1 *10
+  
+  return(dat)
+}
+
+
+#' Title
+#'
 #' @param mod_nn 
 #'
 #' @return
@@ -186,11 +249,5 @@ weights_nn = function(mod_nn) {
   return(a)
   
 }
-
-
-
-
-
-
 
 

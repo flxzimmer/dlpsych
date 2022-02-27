@@ -2,7 +2,7 @@
 % Please edit documentation in R/functions.R
 \name{train_nn}
 \alias{train_nn}
-\title{Title}
+\title{Keras Modelle trainieren}
 \usage{
 train_nn(
   mod,
@@ -11,8 +11,10 @@ train_nn(
   loss,
   epochs = 20,
   learning_rate = 0.001,
+  optimizer = "adam",
   batch_size = nrow(x),
-  metrics = NULL
+  metrics = NULL,
+  silent = FALSE
 )
 }
 \arguments{
@@ -22,19 +24,23 @@ train_nn(
 
 \item{y}{Kriterium}
 
-\item{loss}{Loss Function, Angabe als character, z.B. "mse"}
+\item{loss}{Loss Function, z.B. "mse" (Mean-Squared-Error) oder "ce" (cross-entropy)}
 
 \item{epochs}{Anzahl der Schritte im Gradient Descent. Default ist 20.}
 
 \item{learning_rate}{Schrittweite im Gradient Descent. Default ist .001.}
 
+\item{optimizer}{Verwendeter Optimizer, Default ist "adam". Alternativ: "rmsprop"}
+
 \item{batch_size}{Für Stochastic Gradient Descent: Anzahl der Samples in einem Batch}
 
 \item{metrics}{(Optional) Weitere Metriken die neben der Loss beim Training angezeigt werden sollen. Diese werden beim Training nicht berücksichtigt.}
+
+\item{silent}{Wenn TRUE nur finalen Loss in der Console. Default ist FALSE}
 }
 \value{
 
 }
 \description{
-Title
+One-Line Interface to keras
 }
