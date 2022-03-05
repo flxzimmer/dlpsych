@@ -49,21 +49,54 @@ CE = function(x,y) {
 #' @export
 #'
 #' @examples
-sim_data = function(sample_size) {
+data_conspiracy = function(n,preprocessing=TRUE) {
   
-  agemean= 30
-  agesd = 10
-  cutoff = 18
-  age = runif(sample_size,pnorm(cutoff,agemean,agesd),1)
-  age = round(qnorm(age,agemean,agesd)) # 18-open end
+  realistic = FALSE
   
-  edu = 1+rbinom(sample_size, 4,sigmoid(scale(age)/3)) # 1-5 (Hauptschule -> Uni)
+  if (realistic) {
+  #realistic, discrete version
+
+    agemean= 30
+    agesd = 10
+    cutoff = 18
+    age = runif(n,pnorm(cutoff,agemean,agesd),1)
+    age = round(qnorm(age,agemean,agesd)) # 18-open end
+    
+    edu = 1+rbinom(n, 4,sigmoid(scale(age)/3)) # 1-5 (Hauptschule -> Uni)
+    
+    polori = 1+rbinom(n, 8,sigmoid(scale(age)/10)) # 1-9 (links -> rechts)
+    
+    cm = 5+rbinom(n, 20,sigmoid(scale(age)/10+scale((scale(polori)+.4)^2)+scale(polori)/6-scale(edu)/9)) #5 items from likert scale
+    
+  }
   
-  polori = 1+rbinom(sample_size, 8,sigmoid(scale(age)/10)) # 1-9 (links -> rechts)
-  cm = 5+rbinom(sample_size, 20,sigmoid(scale(age)/10+scale((scale(polori)+.4)^2)+scale(polori)/6-scale(edu)/9)) #5 items from likert scale
+  if (!realistic) {
+    #real-valued version
+
+    agemean= 30
+    agesd = 10
+    cutoff = 18
+    age = runif(n,pnorm(cutoff,agemean,agesd),1) 
+    age = qnorm(age,agemean,agesd) %>% scale() 
+    
+    edu = rnorm(n,mean= scale(age)/3) %>% scale()
+    polori  = rnorm(n,mean=sigmoid(scale(age)/10)) %>% scale()
+    
+    # cm = rnorm(n,mean =sigmoid(scale(age)/10+scale((scale(polori)+.4)^2)+scale(polori)/6-scale(edu)/9) )
+    cm = 5+rbinom(n, 20,sigmoid(scale(age)/10+scale((scale(polori)+.4)^2)+scale(polori)/6-scale(edu)/9+rnorm(n,sd=.5))) #5 items from likert scale
+    
+  }
   
-  df = data.frame(age,edu,polori,cm)
-  return(df)
+  
+  dat = data.frame(age,edu,polori,cm)
+  
+  if (preprocessing) {
+    dat$polori = scale(dat$polori) %>% as.numeric()
+    
+    dat$polori2 = dat$polori^2
+  }
+
+  return(dat)
 }
 
 
@@ -87,15 +120,36 @@ sim_data = function(sample_size) {
 #' @export
 #'
 #' @examples
-train_nn = function(mod,x,y,loss,epochs = 20,learning_rate=.001,optimizer="adam",batch_size=nrow(x),metrics=NULL,silent=FALSE) {
+train_nn = function(mod,x,y,loss,epochs = 20,learning_rate=.001,optimizer="adam",batch_size=nrow(x),metrics=NULL,silent=FALSE,early_stopping=FALSE,validation_split = 0) {
   
   if(is.data.frame(x)) x = as.matrix(x)
   if(is.data.frame(y)) y = as.matrix(y)
   
   if(tolower(optimizer)=="adam") optim = optimizer_adam(learning_rate)
   if(tolower(optimizer)=="rmsprop") optim = optimizer_rmsprop(learning_rate)
+  if(tolower(optimizer)=="sgd") optim = optimizer_sgd(learning_rate)
   
   if (tolower(loss)=="ce") loss = "binary_crossentropy"
+  
+  
+  if(validation_split==0) monitor = "loss"
+  if(validation_split>0) monitor = "val_loss"
+  
+  if (!early_stopping) callbacks_list = NULL
+  
+  if (early_stopping) {
+  callbacks_list = list(
+      callback_early_stopping(
+        monitor = monitor,
+        patience = 5
+      ),
+      callback_model_checkpoint(
+        filepath = "mymodel.h5",
+        monitor = monitor, save_best_only = TRUE
+      )
+    )
+  }
+
   
   mod %>% compile(
     loss = loss,
@@ -110,6 +164,8 @@ train_nn = function(mod,x,y,loss,epochs = 20,learning_rate=.001,optimizer="adam"
     y,
     epochs = epochs,
     batch_size = batch_size,
+    callbacks = callbacks_list,
+    validation_split = validation_split,
     verbose=verbosity
   )
   
@@ -215,6 +271,74 @@ data_income_challenge = function(type,binary=FALSE) {
   dat$unrelated1 = dat$unrelated1 *10
   
   return(dat)
+}
+
+
+
+#' Title
+#'
+#' @param n 
+#' @param binary 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+data_interaction = function(n,include_binary=FALSE) {
+  
+  fare_dodgers = rnorm(n)
+  inspectors = rnorm(n)
+  
+  y = (fare_dodgers * inspectors)
+  y = y - min(y)
+  y = y *10
+  
+  dat = data.frame(fare_dodgers=fare_dodgers,inspectors=inspectors,profit=y)
+  
+  
+  if(include_binary) {
+  fare_dodgers_binary  = (fare_dodgers>0) %>% ifelse("high","low") %>% factor(.,levels=c("low","high"))
+  inspectors_binary  = (inspectors>0) %>% ifelse("high","low") %>% factor(.,levels=c("low","high"))
+  dat = data.frame(fare_dodgers=fare_dodgers,inspectors=inspectors,y=y,fare_dodgers_binary=fare_dodgers_binary, inspectors_binary=inspectors_binary)
+  
+  dat = data.frame(fare_dodgers=fare_dodgers,inspectors=inspectors,profit=y,fare_dodgers_binary=fare_dodgers_binary, inspectors_binary=inspectors_binary)
+  }
+  
+  return(dat)
+}
+
+
+
+#' From Urban,Gates 2021 https://doi.org/10.1037/met0000374
+#'
+#' @param n 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+data_alcohol = function(n) {
+  
+  gender = as.numeric(rbinom(n, 1, 0.5))
+  age = round(runif(n, 18, 85), 0); age = (age - min(age)) / (max(age) - min(age))
+  mud = 1 / (1 + exp(1 + age - 2*gender)); mud = sapply(mud, function(prob) rbinom(1, 1, prob))
+  nud = 1 / (1 + exp(1 + age - 2*gender - 0.5*mud)); nud = sapply(nud, function(prob) rbinom(1, 1, prob))
+  mdd = 1 / (1 + exp(1 + age - 2*gender - 0.5*mud - 0.5*nud)); mdd = sapply(mdd, function(prob) rbinom(1, 1, prob))
+  
+  df = data.frame(gender, age, mdd, nud, mud)
+  
+  # Simulate alcohol use disorder from highly nonlinear model.
+  z = -1 - (age + age**2 + age**3 + age**4 + age**5) +
+    2*gender + 0.5*mdd + 0.5*nud + 0.5*mud -
+    2*(age + age**2 + age**3 + age**4 + age**5)*gender
+  aud = 1 / (1 + exp(-z))
+  aud = sapply(aud, function(prob) rbinom(1, 1, prob))
+  
+  
+  dat = cbind(df,aud)
+  # return(list(X = df, y = aud))
+  return(dat)
+  
 }
 
 

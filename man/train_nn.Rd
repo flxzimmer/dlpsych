@@ -14,7 +14,9 @@ train_nn(
   optimizer = "adam",
   batch_size = nrow(x),
   metrics = NULL,
-  silent = FALSE
+  silent = FALSE,
+  early_stopping = FALSE,
+  validation_split = 0
 )
 }
 \arguments{

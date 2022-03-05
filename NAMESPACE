@@ -2,9 +2,11 @@
 
 export(CE)
 export(MSE)
+export(data_alcohol)
+export(data_conspiracy)
 export(data_income)
 export(data_income_challenge)
+export(data_interaction)
 export(sigmoid)
-export(sim_data)
 export(train_nn)
 export(weights_nn)
