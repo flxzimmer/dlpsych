@@ -35,8 +35,11 @@ MSE = function(x,y) {mean((x-y)^2)}
 #' @export
 #'
 #' @examples
-CE = function(x,y) {
-  -mean(x *log(y) + (1-x) *log(1- y))
+CE = function(y,pred) {
+  
+  if(length(unique(pred))==2) warning("wrong argument order?")
+  
+  -mean(y *log(pred) + (1-y) *log(1- pred))
   }
 
 
@@ -317,7 +320,8 @@ data_interaction = function(n,include_binary=FALSE) {
 #' @export
 #'
 #' @examples
-data_alcohol = function(n) {
+data_alcohol = function(n,extended =TRUE) {
+  #extended includes more questionnaire items
   
   gender = as.numeric(rbinom(n, 1, 0.5))
   age = round(runif(n, 18, 85), 0); age = (age - min(age)) / (max(age) - min(age))
