@@ -39,6 +39,16 @@ CE = function(y,pred) {
   
   if(length(unique(pred))==2) warning("wrong argument order?")
   
+  # pred[pred == 0] = 10^292*.Machine$double.xmin 
+  # pred[pred == 1] = 1-10^292*.Machine$double.xmin 
+  pred[pred == 0] = 1e-8
+  pred[pred == 1] = 1-1e-8
+  
+  # for (i in 1:308) {
+  #   print(i)
+  #   print(1 == 1-10^i*.Machine$double.xmin)
+  # }
+  
   -mean(y *log(pred) + (1-y) *log(1- pred))
   }
 
@@ -123,7 +133,7 @@ data_conspiracy = function(n,preprocessing=TRUE) {
 #' @export
 #'
 #' @examples
-train_nn = function(mod,x,y,loss,epochs = 20,learning_rate=.001,optimizer="adam",batch_size=nrow(x),metrics=NULL,silent=FALSE,early_stopping=FALSE,validation_split = 0) {
+train_nn = function(mod,x,y,loss,epochs = 20,learning_rate=.001,optimizer="adam",batch_size=nrow(x),metrics=NULL,silent=FALSE,early_stopping=FALSE,validation_split = .2) {
   
   if(is.data.frame(x)) x = as.matrix(x)
   if(is.data.frame(y)) y = as.matrix(y)
@@ -138,13 +148,17 @@ train_nn = function(mod,x,y,loss,epochs = 20,learning_rate=.001,optimizer="adam"
   if(validation_split==0) monitor = "loss"
   if(validation_split>0) monitor = "val_loss"
   
-  if (!early_stopping) callbacks_list = NULL
+  if (isTRUE(early_stopping))early_stopping=5
+  if (isFALSE(early_stopping)||early_stopping==0){
+    callbacks_list = NULL
+    validation_split=0
+  }
   
   if (early_stopping) {
   callbacks_list = list(
       callback_early_stopping(
         monitor = monitor,
-        patience = 5
+        patience = early_stopping
       ),
       callback_model_checkpoint(
         filepath = "mymodel.h5",
@@ -329,7 +343,74 @@ data_alcohol = function(n,extended =TRUE) {
   nud = 1 / (1 + exp(1 + age - 2*gender - 0.5*mud)); nud = sapply(nud, function(prob) rbinom(1, 1, prob))
   mdd = 1 / (1 + exp(1 + age - 2*gender - 0.5*mud - 0.5*nud)); mdd = sapply(mdd, function(prob) rbinom(1, 1, prob))
   
+  
+  if(extended) {
+    
+    # jeweils 10 items (0,1)
+    # cutoff ist jeweils >=6
+    
+    mddvals = lapply(mdd,function(x) {
+      
+      if (x==1) {
+        count= sample(6:10,1)
+      }
+      if (x==0) {
+        count= sample(0:5,1)
+      }
+      ind = sample(1:10,count)
+      vec = rep(0,10)
+      vec[ind] =1
+      return(vec)
+    })
+    
+    mddx = do.call(rbind,mddvals)
+    
+    
+    nudvals = lapply(nud,function(x) {
+      
+      if (x==1) {
+        count= sample(6:10,1)
+      }
+      if (x==0) {
+        count= sample(0:5,1)
+      }
+      ind = sample(1:10,count)
+      vec = rep(0,10)
+      vec[ind] =1
+      return(vec)
+    })
+    
+    nudx = do.call(rbind,nudvals)
+    
+    
+    mudvals = lapply(mud,function(x) {
+      
+      if (x==1) {
+        count= sample(6:10,1)
+      }
+      if (x==0) {
+        count= sample(0:5,1)
+      }
+      ind = sample(1:10,count)
+      vec = rep(0,10)
+      vec[ind] =1
+      return(vec)
+    })
+    
+    mudx = do.call(rbind,mudvals)
+  
+    df=cbind(gender,age,mddx,nudx,mudx)
+      
+    colnames(df) = c("gender","age",paste0(c("mdd"),1:10),paste0(c("nud"),1:10),paste0(c("mud"),1:10))
+    
+  }
+  
+  
+  
+  if(!extended) {
+  
   df = data.frame(gender, age, mdd, nud, mud)
+  }
   
   # Simulate alcohol use disorder from highly nonlinear model.
   z = -1 - (age + age**2 + age**3 + age**4 + age**5) +
@@ -339,8 +420,10 @@ data_alcohol = function(n,extended =TRUE) {
   aud = sapply(aud, function(prob) rbinom(1, 1, prob))
   
   
-  dat = cbind(df,aud)
-  # return(list(X = df, y = aud))
+  # dat = cbind(df,aud)
+  dat = list(y =aud, x = df)
+  # return(list(y =aud, x = df))
+  
   return(dat)
   
 }
@@ -369,7 +452,8 @@ weights_nn = function(mod_nn) {
   
   for (i in ind_weights) {
     temp = a[[i]]
-    rownames(temp) = paste0("pred",1:nrow(temp))
+    rownames(temp) = paste0("in",1:nrow(temp))
+    if(i==ind_weights[1]) rownames(temp) = paste0("pred",1:nrow(temp))
     colnames(temp) = paste0("neuron",1:ncol(temp))
     a[[i]] = temp
   }
