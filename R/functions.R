@@ -39,15 +39,8 @@ CE = function(y,pred) {
   
   if(length(unique(pred))==2) warning("wrong argument order?")
   
-  # pred[pred == 0] = 10^292*.Machine$double.xmin 
-  # pred[pred == 1] = 1-10^292*.Machine$double.xmin 
   pred[pred == 0] = 1e-8
   pred[pred == 1] = 1-1e-8
-  
-  # for (i in 1:308) {
-  #   print(i)
-  #   print(1 == 1-10^i*.Machine$double.xmin)
-  # }
   
   -mean(y *log(pred) + (1-y) *log(1- pred))
   }
