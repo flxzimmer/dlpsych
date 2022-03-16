@@ -16,7 +16,7 @@ train_nn(
   metrics = NULL,
   silent = FALSE,
   early_stopping = FALSE,
-  validation_split = 0
+  validation_split = 0.2
 )
 }
 \arguments{

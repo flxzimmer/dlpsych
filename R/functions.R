@@ -12,6 +12,18 @@
 sigmoid  = function(z) {1 / (1 + exp(-z))}
 
 
+#' Title
+#'
+#' @param vec 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+softmax = function(vec) {
+  exp(vec) / sum(exp(vec))
+}
+
 
 #' Title
 #'

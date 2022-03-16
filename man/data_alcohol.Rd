@@ -4,7 +4,7 @@
 \alias{data_alcohol}
 \title{From Urban,Gates 2021 https://doi.org/10.1037/met0000374}
 \usage{
-data_alcohol(n)
+data_alcohol(n, extended = TRUE)
 }
 \arguments{
 \item{n}{}
