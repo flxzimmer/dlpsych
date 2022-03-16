@@ -28,8 +28,8 @@ MSE = function(x,y) {mean((x-y)^2)}
 
 #' Title
 #'
-#' @param x 
 #' @param y 
+#' @param pred 
 #'
 #' @return
 #' @export
@@ -37,7 +37,7 @@ MSE = function(x,y) {mean((x-y)^2)}
 #' @examples
 CE = function(y,pred) {
   
-  if(length(unique(pred))==2) warning("wrong argument order?")
+  if(length(unique(pred))==2) warning("wrong argument order? first argument should be the true values, second the prediction.")
   
   pred[pred == 0] = 1e-8
   pred[pred == 1] = 1-1e-8
@@ -45,6 +45,59 @@ CE = function(y,pred) {
   -mean(y *log(pred) + (1-y) *log(1- pred))
   }
 
+
+
+#' Title
+#'
+#' @param y 
+#' @param pred 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+CCE = function(y,pred) {
+  
+  if(length(unique(pred))==2) warning("wrong argument order? first argument should be the true values, second the prediction.")
+  
+  # sparse cce
+  if(length(dim(y)) == 1) {
+    re = as.numeric(loss_sparse_categorical_crossentropy(y, pred))
+  }
+  
+  # normal cce
+  if(length(dim(y)) > 1) {
+    re = as.numeric(loss_categorical_crossentropy(y, pred))
+  }
+  
+  return(mean(re))
+}
+
+#' Title
+#'
+#' @param y 
+#' @param pred 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+accuracy = function(y,pred) {
+  
+  if(length(unique(pred))==2) warning("wrong argument order? first argument should be the true values, second the prediction.")
+  
+  # sparse cce
+  if(length(dim(y)) == 1) {
+    re = mean(apply(pred,1,function(x) which(x==max(x)))-1 == y)
+      }
+  
+  # normal cce
+  if(length(dim(y)) > 1) {
+    re = mean(apply(pred,1,function(x) which(x==max(x))) == apply(y,1,function(x) which(x==1)))
+  }
+  
+  return(re)
+}
 
 
 #' Title
@@ -136,8 +189,14 @@ train_nn = function(mod,x,y,loss,epochs = 20,learning_rate=.001,optimizer="adam"
   if(tolower(optimizer)=="sgd") optim = optimizer_sgd(learning_rate)
   
   if (tolower(loss)=="ce") loss = "binary_crossentropy"
-  
-  
+
+  if (tolower(loss)=="cce") {
+    # sparse cce
+    if(length(dim(y)) == 1) loss = "sparse_categorical_crossentropy"
+    # normal cce
+    if(length(dim(y)) > 1) loss = "categorical_crossentropy"
+    }
+
   if(validation_split==0) monitor = "loss"
   if(validation_split>0) monitor = "val_loss"
   
@@ -159,8 +218,8 @@ train_nn = function(mod,x,y,loss,epochs = 20,learning_rate=.001,optimizer="adam"
       )
     )
   }
-
   
+
   mod %>% compile(
     loss = loss,
     optimizer = optim,
@@ -183,7 +242,6 @@ train_nn = function(mod,x,y,loss,epochs = 20,learning_rate=.001,optimizer="adam"
     
     final_loss = history$metrics$loss[length(history$metrics$loss)]
   print(paste0("Final Loss (",loss,"): ",final_loss))
-  
   }
   
   return(mod)
@@ -192,7 +250,7 @@ train_nn = function(mod,x,y,loss,epochs = 20,learning_rate=.001,optimizer="adam"
 
 
 
-plot_img = function(img1) {
+plot_img = function(img1,color=FALSE,inv=FALSE) {
   
   dat = c()
   for (i in 1:nrow(img1)) {
@@ -203,8 +261,21 @@ plot_img = function(img1) {
   dat = as.data.frame(dat)
   names(dat) = c("X","Y","val")
   
-  ggplot() + geom_raster(data =dat,aes(x = Y, y = -X,fill=val)) + 
-    scale_fill_gradient(low="grey90", high="black") + theme(legend.position="none")
+  
+  p1 = ggplot() + geom_raster(data =dat,aes(x = Y, y = -X,fill=val)) + 
+    theme_minimal() +
+    theme(panel.grid = element_blank(),legend.position="none",aspect.ratio = 1,axis.text.x=element_blank(),axis.text.y=element_blank()) +  xlab("") + ylab("")
+  
+  if(color)  {
+    if(inv) p1 = p1 + scale_fill_viridis_c(direction=1)
+    if(!inv)   p1 = p1 + scale_fill_viridis_c(direction=-1)
+  }
+  if(!color)  {
+    if(inv) p1 = p1 + scale_fill_gradient(low="black", high="grey90")
+    if(!inv)   p1 = p1 + scale_fill_gradient(low="grey90", high="black")
+  }
+  
+  print(p1)
 }
 
 
@@ -455,4 +526,40 @@ weights_nn = function(mod_nn) {
   
 }
 
+
+
+#' Title
+#'
+#' @param x 
+#' @param y 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+train_naive = function(x,y) {
+  
+  y_onehot <- to_categorical(y)
+  re = colMeans(y_onehot)
+  
+  class(re) = "naive"
+  
+  return(re)  
+}
+
+
+#' Title
+#'
+#' @param mod 
+#' @param x 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+predict.naive = function(mod,x) {
+  
+  mod %>% rep(.,times=nrow(x)) %>% matrix(.,nrow=nrow(x))
+  
+}
 
