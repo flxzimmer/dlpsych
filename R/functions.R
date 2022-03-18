@@ -151,6 +151,7 @@ accuracy_by_class = function(mod,dat_train,dat_test) {
   
   dat = rbind(acc_train,acc_test)
   re = as.data.frame(dat)
+  re = round(re,3)
   rownames(re) = c("train","test")
   colnames(re) = categories
   
@@ -634,7 +635,7 @@ train_nn = function(mod,x,y,loss,epochs = 20,learning_rate=.001,optimizer="adam"
   if(verbosity==0)   {
     
     final_loss = history$metrics$loss[length(history$metrics$loss)]
-    print(paste0("Final Loss (",loss,"): ",final_loss))
+    print(paste0("Final Loss (",loss,"): ",round(final_loss,7)))
   }
   
   return(mod)
