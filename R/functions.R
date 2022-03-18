@@ -210,7 +210,7 @@ plot_img = function(img,color=FALSE,inv=FALSE) {
 #' @export
 #'
 #' @examples
-evaluate = function(mod,dat_train,dat_test,measures) {
+evaluate_mod = function(mod,dat_train,dat_test,measures) {
   
   # predictions 
   pred_train = predict(mod,dat_train$x)
@@ -220,10 +220,10 @@ evaluate = function(mod,dat_train,dat_test,measures) {
   
   for (i in measures) {
     
-    if (tolower(i)=="cce") meas = CCE
-    if (tolower(i)=="acc") meas = accuracy
-    if (tolower(i)=="mse") meas = MSE
-    if (tolower(i)=="ce") meas = CE
+    if (tolower(i)=="cce") meas = dlpsych::CCE
+    if (tolower(i)=="acc") meas = dlpsych::accuracy
+    if (tolower(i)=="mse") meas = dlpsych::MSE
+    if (tolower(i)=="ce") meas = dlpsych::CE
     
   val_train = meas(dat_train$y,pred_train)
   val_test = meas(dat_test$y,pred_test)
