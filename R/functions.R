@@ -1,7 +1,9 @@
 
 
+# helper ------------------------------------------------------------------
 
 #' Title
+#' 
 #'
 #' @param z 
 #'
@@ -85,6 +87,8 @@ CCE = function(y,pred) {
   return(mean(re))
 }
 
+
+
 #' Title
 #'
 #' @param y 
@@ -96,178 +100,82 @@ CCE = function(y,pred) {
 #' @examples
 accuracy = function(y,pred) {
   
-  if(length(unique(pred))==2) warning("wrong argument order? first argument should be the true values, second the prediction.")
+  if(length(unique(pred))==2||is.integer(pred)) warning("wrong argument order? first argument should be the true values, second the prediction.")
   
   # sparse cce
   if(length(dim(y)) == 1) {
-    re = mean(apply(pred,1,function(x) which(x==max(x)))-1 == y)
+    re = mean(apply(pred,1,function(x) which(x==max(x))[1])-1 == y)
       }
   
   # normal cce
   if(length(dim(y)) > 1) {
-    re = mean(apply(pred,1,function(x) which(x==max(x))) == apply(y,1,function(x) which(x==1)))
+    re = mean(apply(pred,1,function(x) which(x==max(x))[1]) == apply(y,1,function(x) which(x==1)))
   }
   
   return(re)
 }
 
 
+
+
+
 #' Title
 #'
-#' @param sample_size 
+#' @param mod 
+#' @param dat_train 
+#' @param dat_test 
 #'
 #' @return
 #' @export
 #'
 #' @examples
-data_conspiracy = function(n,preprocessing=TRUE) {
+accuracy_by_class = function(mod,dat_train,dat_test) {
   
-  realistic = FALSE
+  # predictions 
+  pred_train = predict(mod,dat_train$x)
+  pred_test = predict(mod,dat_test$x)
   
-  if (realistic) {
-  #realistic, discrete version
-
-    agemean= 30
-    agesd = 10
-    cutoff = 18
-    age = runif(n,pnorm(cutoff,agemean,agesd),1)
-    age = round(qnorm(age,agemean,agesd)) # 18-open end
-    
-    edu = 1+rbinom(n, 4,sigmoid(scale(age)/3)) # 1-5 (Hauptschule -> Uni)
-    
-    polori = 1+rbinom(n, 8,sigmoid(scale(age)/10)) # 1-9 (links -> rechts)
-    
-    cm = 5+rbinom(n, 20,sigmoid(scale(age)/10+scale((scale(polori)+.4)^2)+scale(polori)/6-scale(edu)/9)) #5 items from likert scale
-    
+  #train accuracy
+  acc_train = c()
+  categories = sort(unique(dat_train$y))
+  for (i in categories) {
+    acc_train = c(acc_train,accuracy(dat_train$y[dat_train$y==i],pred_train[dat_train$y==i,]))
   }
   
-  if (!realistic) {
-    #real-valued version
-
-    agemean= 30
-    agesd = 10
-    cutoff = 18
-    age = runif(n,pnorm(cutoff,agemean,agesd),1) 
-    age = qnorm(age,agemean,agesd) %>% scale() 
-    
-    edu = rnorm(n,mean= scale(age)/3) %>% scale()
-    polori  = rnorm(n,mean=sigmoid(scale(age)/10)) %>% scale()
-    
-    # cm = rnorm(n,mean =sigmoid(scale(age)/10+scale((scale(polori)+.4)^2)+scale(polori)/6-scale(edu)/9) )
-    cm = 5+rbinom(n, 20,sigmoid(scale(age)/10+scale((scale(polori)+.4)^2)+scale(polori)/6-scale(edu)/9+rnorm(n,sd=.5))) #5 items from likert scale
-    
+  #test accuracy
+  acc_test = c()
+  categories = sort(unique(dat_test$y))
+  for (i in categories) {
+    acc_test = c(acc_test,accuracy(dat_test$y[dat_test$y==i],pred_test[dat_test$y==i,]))
   }
   
+  dat = rbind(acc_train,acc_test)
+  re = as.data.frame(dat)
+  rownames(re) = c("train","test")
+  colnames(re) = categories
   
-  dat = data.frame(age,edu,polori,cm)
-  
-  if (preprocessing) {
-    dat$polori = scale(dat$polori) %>% as.numeric()
-    
-    dat$polori2 = dat$polori^2
-  }
-
-  return(dat)
+  return(re)
 }
 
 
 
-#' Keras Modelle trainieren
-#' 
-#' One-Line Interface to keras
+
+#' Title
 #'
-#' @param mod Keras Model, z.B. erstellt mit keras_model_sequential() 
-#' @param x Prädiktoren
-#' @param y Kriterium 
-#' @param loss Loss Function, z.B. "mse" (Mean-Squared-Error) oder "ce" (cross-entropy) 
-#' @param epochs Anzahl der Schritte im Gradient Descent. Default ist 20.
-#' @param learning_rate Schrittweite im Gradient Descent. Default ist .001.
-#' @param batch_size Für Stochastic Gradient Descent: Anzahl der Samples in einem Batch 
-#' @param metrics (Optional) Weitere Metriken die neben der Loss beim Training angezeigt werden sollen. Diese werden beim Training nicht berücksichtigt. 
-#' @param optimizer Verwendeter Optimizer, Default ist "adam". Alternativ: "rmsprop"
-#' @param silent Wenn TRUE nur finalen Loss in der Console. Default ist FALSE
+#' @param img1 
+#' @param color 
+#' @param inv 
 #'
 #' @return
 #' @export
 #'
 #' @examples
-train_nn = function(mod,x,y,loss,epochs = 20,learning_rate=.001,optimizer="adam",batch_size=nrow(x),metrics=NULL,silent=FALSE,early_stopping=FALSE,validation_split = .2) {
-  
-  if(is.data.frame(x)) x = as.matrix(x)
-  if(is.data.frame(y)) y = as.matrix(y)
-  
-  if(tolower(optimizer)=="adam") optim = optimizer_adam(learning_rate)
-  if(tolower(optimizer)=="rmsprop") optim = optimizer_rmsprop(learning_rate)
-  if(tolower(optimizer)=="sgd") optim = optimizer_sgd(learning_rate)
-  
-  if (tolower(loss)=="ce") loss = "binary_crossentropy"
-
-  if (tolower(loss)=="cce") {
-    # sparse cce
-    if(length(dim(y)) == 1) loss = "sparse_categorical_crossentropy"
-    # normal cce
-    if(length(dim(y)) > 1) loss = "categorical_crossentropy"
-    }
-
-  if(validation_split==0) monitor = "loss"
-  if(validation_split>0) monitor = "val_loss"
-  
-  if (isTRUE(early_stopping))early_stopping=5
-  if (isFALSE(early_stopping)||early_stopping==0){
-    callbacks_list = NULL
-    validation_split=0
-  }
-  
-  if (early_stopping) {
-  callbacks_list = list(
-      callback_early_stopping(
-        monitor = monitor,
-        patience = early_stopping
-      ),
-      callback_model_checkpoint(
-        filepath = "mymodel.h5",
-        monitor = monitor, save_best_only = TRUE
-      )
-    )
-  }
-  
-
-  mod %>% compile(
-    loss = loss,
-    optimizer = optim,
-    metrics = metrics
-  )
-  
-  verbosity =  ifelse(silent, 0, 1) 
-  
-  history = mod %>% fit(
-    x,
-    y,
-    epochs = epochs,
-    batch_size = batch_size,
-    callbacks = callbacks_list,
-    validation_split = validation_split,
-    verbose=verbosity
-  )
-  
-  if(verbosity==0)   {
-    
-    final_loss = history$metrics$loss[length(history$metrics$loss)]
-  print(paste0("Final Loss (",loss,"): ",final_loss))
-  }
-  
-  return(mod)
-}
-
-
-
-
-plot_img = function(img1,color=FALSE,inv=FALSE) {
+plot_img = function(img,color=FALSE,inv=FALSE) {
   
   dat = c()
-  for (i in 1:nrow(img1)) {
-    for (j in 1:ncol(img1)) {
-      dat = rbind(dat,c(i,j,img1[i,j]))
+  for (i in 1:nrow(img)) {
+    for (j in 1:ncol(img)) {
+      dat = rbind(dat,c(i,j,img[i,j]))
     }
   }
   dat = as.data.frame(dat)
@@ -289,6 +197,50 @@ plot_img = function(img1,color=FALSE,inv=FALSE) {
   
   print(p1)
 }
+
+
+#' Title
+#'
+#' @param mod 
+#' @param dat_train 
+#' @param dat_test 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+evaluate = function(mod,dat_train,dat_test,measures) {
+  
+  # predictions 
+  pred_train = predict(mod,dat_train$x)
+  pred_test = predict(mod,dat_test$x)
+  
+  re = c()
+  
+  for (i in measures) {
+    
+    if (tolower(i)=="cce") meas = CCE
+    if (tolower(i)=="acc") meas = accuracy
+    if (tolower(i)=="mse") meas = MSE
+    if (tolower(i)=="ce") meas = CE
+    
+  val_train = meas(dat_train$y,pred_train)
+  val_test = meas(dat_test$y,pred_test)
+
+  re = cbind(re,c(val_train,val_test))
+  
+  }
+  
+  re = as.data.frame(re)
+  colnames(re) = measures
+  rownames(re) = c("train","test")
+  return(re)
+}
+
+
+
+
+# data --------------------------------------------------------------------
 
 
 #' Title
@@ -504,6 +456,190 @@ data_alcohol = function(n,extended =TRUE) {
   
 }
 
+#' Title
+#'
+#' @param sample_size 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+data_conspiracy = function(n,preprocessing=TRUE) {
+  
+  realistic = FALSE
+  
+  if (realistic) {
+    #realistic, discrete version
+    
+    agemean= 30
+    agesd = 10
+    cutoff = 18
+    age = runif(n,pnorm(cutoff,agemean,agesd),1)
+    age = round(qnorm(age,agemean,agesd)) # 18-open end
+    
+    edu = 1+rbinom(n, 4,sigmoid(scale(age)/3)) # 1-5 (Hauptschule -> Uni)
+    
+    polori = 1+rbinom(n, 8,sigmoid(scale(age)/10)) # 1-9 (links -> rechts)
+    
+    cm = 5+rbinom(n, 20,sigmoid(scale(age)/10+scale((scale(polori)+.4)^2)+scale(polori)/6-scale(edu)/9)) #5 items from likert scale
+    
+  }
+  
+  if (!realistic) {
+    #real-valued version
+    
+    agemean= 30
+    agesd = 10
+    cutoff = 18
+    age = runif(n,pnorm(cutoff,agemean,agesd),1) 
+    age = qnorm(age,agemean,agesd) %>% scale() 
+    
+    edu = rnorm(n,mean= scale(age)/3) %>% scale()
+    polori  = rnorm(n,mean=sigmoid(scale(age)/10)) %>% scale()
+    
+    # cm = rnorm(n,mean =sigmoid(scale(age)/10+scale((scale(polori)+.4)^2)+scale(polori)/6-scale(edu)/9) )
+    cm = 5+rbinom(n, 20,sigmoid(scale(age)/10+scale((scale(polori)+.4)^2)+scale(polori)/6-scale(edu)/9+rnorm(n,sd=.5))) #5 items from likert scale
+    
+  }
+  
+  
+  dat = data.frame(age,edu,polori,cm)
+  
+  if (preprocessing) {
+    dat$polori = scale(dat$polori) %>% as.numeric()
+    
+    dat$polori2 = dat$polori^2
+  }
+  
+  return(dat)
+}
+
+
+data_fashion = function(type="train") {
+
+dataset <- dataset_fashion_mnist()
+
+if (type=="train") dat = dataset$train
+if (type=="test") dat = dataset$test
+
+dat$x <- dat$x / 255
+
+return(dat)
+# if (type=="test") {
+#   dat_train = dat$train
+#   dat_train$x <- dat_train$x / 255
+# }
+# 
+# 
+# 
+# dat_train = dat$train
+# dat_test = dat$test
+# 
+# class_names = c('T-shirt/top',
+#                 'Trouser',
+#                 'Pullover',
+#                 'Dress',
+#                 'Coat', 
+#                 'Sandal',
+#                 'Shirt',
+#                 'Sneaker',
+#                 'Bag',
+#                 'Ankle boot')
+# 
+# dat_train$x <- dat_train$x / 255
+# dat_test$x <- dat_test$x / 255
+
+}
+
+# learner -----------------------------------------------------------------
+
+#' Keras Modelle trainieren
+#' 
+#' One-Line Interface to keras
+#'
+#' @param mod Keras Model, z.B. erstellt mit keras_model_sequential() 
+#' @param x Prädiktoren
+#' @param y Kriterium 
+#' @param loss Loss Function, z.B. "mse" (Mean-Squared-Error) oder "ce" (cross-entropy) 
+#' @param epochs Anzahl der Schritte im Gradient Descent. Default ist 20.
+#' @param learning_rate Schrittweite im Gradient Descent. Default ist .001.
+#' @param batch_size Für Stochastic Gradient Descent: Anzahl der Samples in einem Batch 
+#' @param metrics (Optional) Weitere Metriken die neben der Loss beim Training angezeigt werden sollen. Diese werden beim Training nicht berücksichtigt. 
+#' @param optimizer Verwendeter Optimizer, Default ist "adam". Alternativ: "rmsprop"
+#' @param silent Wenn TRUE nur finalen Loss in der Console. Default ist FALSE
+#'
+#' @return
+#' @export
+#'
+#' @examples
+train_nn = function(mod,x,y,loss,epochs = 20,learning_rate=.001,optimizer="adam",batch_size=nrow(x),metrics=NULL,silent=FALSE,early_stopping=FALSE,validation_split = .2) {
+  
+  if(is.data.frame(x)) x = as.matrix(x)
+  if(is.data.frame(y)) y = as.matrix(y)
+  
+  if(tolower(optimizer)=="adam") optim = optimizer_adam(learning_rate)
+  if(tolower(optimizer)=="rmsprop") optim = optimizer_rmsprop(learning_rate)
+  if(tolower(optimizer)=="sgd") optim = optimizer_sgd(learning_rate)
+  
+  if (tolower(loss)=="ce") loss = "binary_crossentropy"
+  
+  if (tolower(loss)=="cce") {
+    # sparse cce
+    if(length(dim(y)) == 1) loss = "sparse_categorical_crossentropy"
+    # normal cce
+    if(length(dim(y)) > 1) loss = "categorical_crossentropy"
+  }
+  
+  if(validation_split==0) monitor = "loss"
+  if(validation_split>0) monitor = "val_loss"
+  
+  if (isTRUE(early_stopping))early_stopping=5
+  if (isFALSE(early_stopping)||early_stopping==0){
+    callbacks_list = NULL
+    validation_split=0
+  }
+  
+  if (early_stopping) {
+    callbacks_list = list(
+      callback_early_stopping(
+        monitor = monitor,
+        patience = early_stopping
+      ),
+      callback_model_checkpoint(
+        filepath = "mymodel.h5",
+        monitor = monitor, save_best_only = TRUE
+      )
+    )
+  }
+  
+  
+  mod %>% compile(
+    loss = loss,
+    optimizer = optim,
+    metrics = metrics
+  )
+  
+  verbosity =  ifelse(silent, 0, 1) 
+  
+  history = mod %>% fit(
+    x,
+    y,
+    epochs = epochs,
+    batch_size = batch_size,
+    callbacks = callbacks_list,
+    validation_split = validation_split,
+    verbose=verbosity
+  )
+  
+  if(verbosity==0)   {
+    
+    final_loss = history$metrics$loss[length(history$metrics$loss)]
+    print(paste0("Final Loss (",loss,"): ",final_loss))
+  }
+  
+  return(mod)
+}
+
 
 #' Title
 #'
@@ -549,12 +685,12 @@ weights_nn = function(mod_nn) {
 #' @export
 #'
 #' @examples
-train_naive = function(x,y) {
+train_featureless = function(x,y) {
   
   y_onehot <- to_categorical(y)
   re = colMeans(y_onehot)
   
-  class(re) = "naive"
+  class(re) = "featureless"
   
   return(re)  
 }
@@ -569,7 +705,7 @@ train_naive = function(x,y) {
 #' @export
 #'
 #' @examples
-predict.naive = function(mod,x) {
+predict.featureless = function(mod,x) {
   
   mod %>% rep(.,times=nrow(x)) %>% matrix(.,nrow=nrow(x))
   
