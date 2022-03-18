@@ -516,6 +516,14 @@ data_conspiracy = function(n,preprocessing=TRUE) {
 }
 
 
+#' Title
+#'
+#' @param type 
+#'
+#' @return
+#' @export
+#'
+#' @examples
 data_fashion = function(type="train") {
 
 dataset <- dataset_fashion_mnist()
