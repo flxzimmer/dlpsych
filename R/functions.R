@@ -532,32 +532,9 @@ if (type=="train") dat = dataset$train
 if (type=="test") dat = dataset$test
 
 dat$x <- dat$x / 255
+dat$x = array(dat$x,dim=c(dim(dat$x),1))
 
 return(dat)
-# if (type=="test") {
-#   dat_train = dat$train
-#   dat_train$x <- dat_train$x / 255
-# }
-# 
-# 
-# 
-# dat_train = dat$train
-# dat_test = dat$test
-# 
-# class_names = c('T-shirt/top',
-#                 'Trouser',
-#                 'Pullover',
-#                 'Dress',
-#                 'Coat', 
-#                 'Sandal',
-#                 'Shirt',
-#                 'Sneaker',
-#                 'Bag',
-#                 'Ankle boot')
-# 
-# dat_train$x <- dat_train$x / 255
-# dat_test$x <- dat_test$x / 255
-
 }
 
 # learner -----------------------------------------------------------------
