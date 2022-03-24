@@ -10,7 +10,7 @@
 !.git
 !functions.R
 !*.Rd
-!.hdf5
+!*.hdf5
 # etc...
 
 # ...even if they are in subdirectories
