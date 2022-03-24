@@ -562,6 +562,51 @@ return(dat)
 
 # learner -----------------------------------------------------------------
 
+
+
+
+#' Title
+#'
+#' @param name 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+save_model = function(mod,name) {
+  
+  dir = system.file('extdata', package = 'dlpsych')
+  filename = paste0("/",name,".hdf5")
+  loc = paste0(dir,filename)
+  mod = save_model_hdf5(mod,loc)
+  
+  # files <- lapply(list.files(system.file('extdata', package = 'dlpsych'), full.names = TRUE), read.csv)
+  return(mod)
+  
+}
+
+
+#' Title
+#'
+#' @param name 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+load_model = function(name) {
+  
+  dir = system.file('extdata', package = 'dlpsych')
+  filename = paste0("/",name,".hdf5")
+  loc = paste0(dir,filename)
+  mod = load_model_hdf5(loc)
+  
+  # files <- lapply(list.files(system.file('extdata', package = 'dlpsych'), full.names = TRUE), read.csv)
+  return(mod)
+  
+}
+
+
 #' Keras Modelle trainieren
 #' 
 #' One-Line Interface to keras
