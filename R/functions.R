@@ -680,9 +680,9 @@ train_nn = function(mod,x,y,loss,epochs = 20,learning_rate=.001,optimizer="adam"
 #' @export
 #'
 #' @examples
-weights_nn = function(mod_nn) {
+weights_nn = function(mod) {
   
-  a = get_weights(mod_nn)
+  a = get_weights(mod)
   
   len = length(a)
   
@@ -695,10 +695,28 @@ weights_nn = function(mod_nn) {
   
   for (i in ind_weights) {
     temp = a[[i]]
-    rownames(temp) = paste0("in",1:nrow(temp))
-    if(i==ind_weights[1]) rownames(temp) = paste0("pred",1:nrow(temp))
-    colnames(temp) = paste0("neuron",1:ncol(temp))
-    a[[i]] = temp
+    
+    if(length(dim(temp))==4) { #treatment for convlayers
+      
+      
+      # temp <- provideDimnames(temp, sep = "", base = list("kernel",'row','col','filter'))
+      # 
+      dimnames(temp) = list(paste0("row",1:dim(temp)[1]),paste0("col",1:dim(temp)[2]),paste0("kernel",1:dim(temp)[3]),paste0("filter",1:dim(temp)[4]))
+      # temp[1:2,,,1]
+
+      
+      # temp <- aperm(temp, c(2,3,1,4))
+      a[[i]] = temp
+    }
+    
+    if(length(dim(temp))<4) { #dense layer?
+      
+      rownames(temp) = paste0("in",1:nrow(temp))
+      if(i==ind_weights[1]) rownames(temp) = paste0("pred",1:nrow(temp))
+      colnames(temp) = paste0("neuron",1:ncol(temp))
+      a[[i]] = temp
+    }
+    
   }
   
   return(a)
