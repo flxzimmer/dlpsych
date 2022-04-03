@@ -11,6 +11,8 @@
 !functions.R
 !*.Rd
 !*.hdf5
+!ckplus.Rdata
+
 # etc...
 
 # ...even if they are in subdirectories
