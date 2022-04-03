@@ -558,6 +558,7 @@ return(dat)
 #' Title
 #'
 #' @param type 
+#' @param augmented 
 #'
 #' @return
 #' @export

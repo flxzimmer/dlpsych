@@ -4,7 +4,7 @@
 \alias{train_featureless}
 \title{Title}
 \usage{
-train_featureless(x, y)
+train_featureless(x = NULL, y)
 }
 \arguments{
 \item{x}{}
