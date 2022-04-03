@@ -103,7 +103,7 @@ accuracy = function(y,pred) {
   if(length(unique(pred))==2||is.integer(pred)) warning("wrong argument order? first argument should be the true values, second the prediction.")
   
   # sparse cce
-  if(length(dim(y)) == 1) {
+  if(length(dim(y)) <= 1) {
     re = mean(apply(pred,1,function(x) which(x==max(x))[1])-1 == y)
       }
   
@@ -130,6 +130,13 @@ accuracy = function(y,pred) {
 #'
 #' @examples
 accuracy_by_class = function(mod,dat_train,dat_test) {
+  
+  if(length(dim(dat_train$y))>1) {
+    dat_train$y = apply(dat_train$y,1,function(x)which(x==1))-1
+  }
+  if(length(dim(dat_test$y))>1) {
+    dat_test$y = apply(dat_test$y,1,function(x)which(x==1))-1
+  }
   
   # predictions 
   pred_train = predict(mod,dat_train$x)
@@ -173,6 +180,9 @@ accuracy_by_class = function(mod,dat_train,dat_test) {
 #' @examples
 plot_img = function(img,color=FALSE,inv=FALSE) {
   
+  
+  if(length(dim(img))==3)  img = as.array(img[,,1])
+  
   dat = c()
   for (i in 1:nrow(img)) {
     for (j in 1:ncol(img)) {
@@ -197,6 +207,11 @@ plot_img = function(img,color=FALSE,inv=FALSE) {
   }
   
   print(p1)
+  
+  
+  
+  
+  
 }
 
 
@@ -211,7 +226,7 @@ plot_img = function(img,color=FALSE,inv=FALSE) {
 #'
 #' @examples
 evaluate_mod = function(mod,dat_train,dat_test,measures) {
-  
+  # browser()
   # predictions 
   pred_train = predict(mod,dat_train$x)
   pred_test = predict(mod,dat_test$x)
@@ -242,6 +257,8 @@ evaluate_mod = function(mod,dat_train,dat_test,measures) {
 
 
 # data --------------------------------------------------------------------
+
+
 
 
 #' Title
@@ -537,6 +554,195 @@ dat$x = array(dat$x,dim=c(dim(dat$x),1))
 return(dat)
 }
 
+
+#' Title
+#'
+#' @param type 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+data_emotion = function(type="train",augmented=F) {
+  
+
+  
+  ## for creation of data from PNG:
+  
+  if (F) {
+    
+    
+    
+    if(!require(png)) {
+      install.packages("png", repos = "http://cran.us.r-project.org")
+      library(png)
+    }
+    
+    if(!require(abind)) {
+      install.packages("abind", repos = "http://cran.us.r-project.org")
+      library(abind)
+    }
+    
+    if(!require(fastDummies)) {
+      install.packages("fastDummies", repos = "http://cran.us.r-project.org")
+      library(fastDummies)
+    }
+    
+  data_dir = paste0(getwd(),"/CK+48/")
+  
+  x = y = names = NULL
+  for (dir in list.files(data_dir)) {
+    for (file in list.files(file.path(data_dir, dir))) {
+      x = abind(x, readPNG(file.path(data_dir, dir, file)), along = 3)
+      y = rbind(y, dir)
+      names = c(names, substr(file, 2, 8))
+    }
+  }
+  x = aperm(x, c(3, 1, 2))
+  
+  y = dummy_cols(as.factor(y))[, -1]
+  colnames(y) = c("anger", "contempt", "disgust", "fear", "happy", "sadness", "surprise")
+  
+  
+  x = k_expand_dims(x, axis = 4)
+  x = as.array(x,dim=4)
+  y = as.matrix(y)
+  
+  use_third =TRUE 
+  if (use_third) {
+    ind_use = seq(3,length(names),by=3)
+    x =x[ind_use,,,,drop=F]
+    y = y[ind_use,]
+    names=names[ind_use]
+  }
+  
+  set.seed(1)
+  ind_train = sample(1:nrow(x), 0.7*nrow(x))
+  is_train = (1:nrow(x)) %in% ind_train
+  
+  dat_train = list(x = x[is_train,,,,drop=F],y=y[is_train,])
+  dat_test = list(x = x[!is_train,,,,drop=F],y=y[!is_train,])
+  
+  
+  # augmentation
+  
+  datagen = image_data_generator(
+    rotation_range = 10,
+    zoom_range = 0.2,
+    horizontal_flip = TRUE,
+    brightness_range = c(.9,1.1),
+    fill_mode = 'nearest')
+  
+  # train 
+  a = flow_images_from_data(
+    x= dat_train$x,
+    y = dat_train$y,
+    generator = datagen,
+    batch_size = nrow(dat_train$x),
+    shuffle = TRUE,
+    sample_weight = NULL,
+    seed = NULL,
+    save_to_dir = NULL,
+    save_prefix = "",
+    save_format = "png",
+    subset = NULL
+  )
+  
+  augment = NULL
+  augment_y = NULL
+  
+  a$seed=1L
+  batch = generator_next(a)
+  augment = abind(augment, batch[[1]], along = 1)
+  augment_y = abind(augment_y, batch[[2]], along = 1)
+
+  dat_train_augmented = dat_train
+  dat_train_augmented$x = abind(dat_train_augmented$x,augment,along=1)
+  dat_train_augmented$y = abind(dat_train_augmented$y,augment_y,along=1)
+  
+
+  # test 
+  a = flow_images_from_data(
+    x= dat_test$x,
+    y = dat_test$y,
+    generator = datagen,
+    batch_size = nrow(dat_test$x),
+    shuffle = TRUE,
+    sample_weight = NULL,
+    seed = NULL,
+    save_to_dir = NULL,
+    save_prefix = "",
+    save_format = "png",
+    subset = NULL
+  )
+  
+  augment = NULL
+  augment_y = NULL
+  
+  a$seed=1L
+  batch = generator_next(a)
+  augment = abind(augment, batch[[1]], along = 1)
+  augment_y = abind(augment_y, batch[[2]], along = 1)
+  
+  dat_test_augmented = dat_test
+  dat_test_augmented$x = abind(dat_test_augmented$x,augment,along=1)
+  dat_test_augmented$y = abind(dat_test_augmented$y,augment_y,along=1)
+  
+  
+  save(dat_train,dat_test,dat_train_augmented,dat_test_augmented,file=loc)
+
+  }
+  
+
+  dir = system.file('extdata', package = 'dlpsych')
+  filename = paste0("/ckplus.Rdata")
+  loc = paste0(dir,filename)
+  load(loc)
+  
+  if(type=="train") dat = dat_train
+  if(type=="test")  dat = dat_test
+  
+  if (augmented) {
+    if(type=="train") dat = dat_train_augmented
+    if(type=="test")  dat = dat_test_augmented
+  }
+  
+  
+  return(dat)
+  
+  
+  # if(type=="train") dat = list(x = x[is_train,,,,drop=F],y=y[is_train,])
+  # if(type=="test")  dat = list(x = x[!is_train,,,,drop=F],y=y[!is_train,])
+  
+  # browser()
+  # unique_ids = !duplicated(names)
+  # if (!augmented) {
+  #   x = x[unique_ids,,]
+  #   y = y[unique_ids,]
+  #   names = names[unique_ids]
+  # }
+
+  # Create training and test data sets.
+  # train_idxs = names %in% unique(names)[unique_train_idxs]
+  # train_data = list(x = k_expand_dims(x[train_idxs, , ], axis = 4))
+  # test_data = list(x = k_expand_dims(x[!train_idxs, , ], axis = 4))
+  # 
+  # train_data$y = y[train_idxs, ]
+  # test_data$y = y[!train_idxs, ]
+  # 
+  # # modifications
+  # dat_train = train_data
+  # dat_train$y = as.matrix(dat_train$y)
+  # dat_test = test_data
+  # dat_test$y = as.matrix(dat_test$y)
+  # 
+  # if(type=="train") dat = dat_train
+  # if(type=="test") dat = dat_test
+  
+  
+}
+
+
 # learner -----------------------------------------------------------------
 
 
@@ -734,10 +940,13 @@ weights_nn = function(mod) {
 #' @export
 #'
 #' @examples
-train_featureless = function(x,y) {
+train_featureless = function(x=NULL,y) {
   
-  y_onehot <- to_categorical(y)
-  re = colMeans(y_onehot)
+  
+  if(length(dim(y))==1) y <- to_categorical(y)
+  
+  # y = apply(y,2,as.numeric)
+  re = colMeans(y)
   
   class(re) = "featureless"
   
@@ -756,7 +965,7 @@ train_featureless = function(x,y) {
 #' @examples
 predict.featureless = function(mod,x) {
   
-  mod %>% rep(.,times=nrow(x)) %>% matrix(.,nrow=nrow(x))
+   mod%>% rep(.,times=nrow(x)) %>% matrix(.,nrow=nrow(x),byrow=T)
   
 }
 
