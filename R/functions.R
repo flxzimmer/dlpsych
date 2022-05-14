@@ -56,8 +56,20 @@ CE = function(y,pred) {
   pred[pred == 0] = 1e-8
   pred[pred == 1] = 1-1e-8
   
-  -mean(y *log(pred) + (1-y) *log(1- pred))
+  # single label CE
+  if (is.null(ncol(y)) || ncol(y)<= 1) {
+  re = -mean(y *log(pred) + (1-y) *log(1- pred))
   }
+  
+  # multilabel CE
+  if (!is.null(ncol(y)) && ncol(y)> 1) {
+
+      a = loss_binary_crossentropy(y,pred)
+      re = mean(as.numeric(a))
+  }
+  
+  return(re)
+}
 
 
 
@@ -102,15 +114,27 @@ accuracy = function(y,pred) {
   
   if(length(unique(pred))==2||is.integer(pred)) warning("wrong argument order? first argument should be the true values, second the prediction.")
   
-  # sparse cce
+  # sparse y
   if(length(dim(y)) <= 1) {
     re = mean(apply(pred,1,function(x) which(x==max(x))[1])-1 == y)
       }
   
-  # normal cce
+  # one-hot y
   if(length(dim(y)) > 1) {
-    re = mean(apply(pred,1,function(x) which(x==max(x))[1]) == apply(y,1,function(x) which(x==1)))
+    
+    # single label task
+    if(max(rowSums(y)) == 1) {
+      re = mean(apply(pred,1,function(x) which(x==max(x))[1]) == apply(y,1,function(x) which(x==1)))
+    }
+    
+    # multilabel task
+    if(max(rowSums(y))>1) {
+      matches = (pred>.5) == (y==1)
+      re = mean(apply(matches,1,all))
+    }
+    
   }
+  
   
   return(re)
 }
@@ -743,6 +767,53 @@ data_emotion = function(type="train",augmented=F) {
   
 }
 
+
+
+#' Title
+#'
+#' @param type 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+data_pse = function(type="train") {
+  
+  # Load Preprocessed
+  
+  load("4_2_preprocessed.RData")	
+  
+  #TRYCATCH
+  tryCatch(
+    tokenizer <- load_text_tokenizer("4_2_tokenizer.stc"),
+    error=function(e) tokenizer <- load_text_tokenizer("4_2_tokenizer2.stc"))
+  
+  MAXWORDS = 15000 # maybe increase later if running smoothly
+  MAXLEN.STC = 50
+  
+  targets = c("pow","ach","aff")
+  
+  data_y = as.matrix(dat[targets])
+  
+  
+  train.inds = sample(1:nrow(dat),round(.7*nrow(dat)))
+  test.inds = !((1:nrow(dat)) %in% train.inds)
+  
+  train <- dat[train.inds,]
+  test  <- dat[test.inds,]
+  train_x <- x.padded[train.inds,]
+  test_x  <- x.padded[test.inds,]
+  train_y = data_y[train.inds,]
+  test_y = data_y[test.inds,]
+  
+  dat_train = list(x = train_x,y = train_y,text=train$text)
+  dat_test = list(x = test_x,y = test_y,test=test$text)
+  
+  if(type=="train") dat = dat_train
+  if(type=="test") dat = dat_test
+  
+  return(dat)
+}
 
 # learner -----------------------------------------------------------------
 
