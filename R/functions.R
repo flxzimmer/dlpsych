@@ -784,12 +784,12 @@ data_pse = function(type="train") {
   # Load Preprocessed
   
   # load("4_2_preprocessed.RData")	
-  load(paste0(dir,"4_2_preprocessed.RData"))
+  load(paste0(dir,"/4_2_preprocessed.RData"))
   
   #TRYCATCH
   tryCatch(
-    tokenizer <- load_text_tokenizer(paste0(dir,"4_2_tokenizer.stc")),
-    error=function(e) tokenizer <- load_text_tokenizer(paste0(dir,"4_2_tokenizer2.stc")))
+    tokenizer <- load_text_tokenizer(paste0(dir,"/4_2_tokenizer.stc")),
+    error=function(e) tokenizer <- load_text_tokenizer(paste0(dir,"/4_2_tokenizer2.stc")))
   
   MAXWORDS = 15000 # maybe increase later if running smoothly
   MAXLEN.STC = 50
