@@ -12,6 +12,9 @@
 !*.Rd
 !*.hdf5
 !ckplus.Rdata
+!4_2_preprocessed.Rdata
+!*.stc
+
 
 # etc...
 
